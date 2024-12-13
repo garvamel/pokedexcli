@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/garvamel/pokedexcli/internal/pokeapi"
 )
 
 type configuration struct {
@@ -15,13 +17,17 @@ type configuration struct {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
-	config      *configuration
+	callback    func(*configuration) error
 }
 
 var commands map[string]cliCommand
 
 func main() {
+
+	conf := configuration{
+		next:     "https://pokeapi.co/api/v2/location-area/",
+		previous: "",
+	}
 
 	commands = map[string]cliCommand{
 		"help": {
@@ -37,13 +43,13 @@ func main() {
 		"map": {
 			name:        "map",
 			description: "Lists location areas",
-			callback:    CommandMap,
+			callback:    commandMap,
 		},
-		// "mapb": {
-		// 	name:        "mapback",
-		// 	description: "Lists previous location areas",
-		// 	callback:    commandMapB,
-		// },
+		"mapb": {
+			name:        "mapback",
+			description: "Lists previous location areas",
+			callback:    commandMapBack,
+		},
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -56,7 +62,7 @@ func main() {
 			continue
 		}
 		if obj, ok := commands[inputFields[0]]; ok {
-			obj.callback()
+			obj.callback(&conf)
 		} else {
 			fmt.Println("Unknown command")
 		}
@@ -64,13 +70,13 @@ func main() {
 	}
 }
 
-func commandExit() error {
+func commandExit(conf *configuration) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp() error {
+func commandHelp(conf *configuration) error {
 
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
@@ -78,5 +84,30 @@ func commandHelp() error {
 	for _, command := range commands {
 		fmt.Printf("%s: %s\n", command.name, command.description)
 	}
+	return nil
+}
+
+func commandMap(conf *configuration) error {
+
+	loc := pokeapi.GetLocation(conf.next)
+
+	conf.next = loc.Next
+	s, _ := loc.Previous.(string)
+	conf.previous = s
+	return nil
+}
+
+func commandMapBack(conf *configuration) error {
+
+	if conf.previous == "" {
+		fmt.Println("you're on the first page")
+		return nil
+	}
+
+	loc := pokeapi.GetLocation(conf.previous)
+
+	conf.next = loc.Next
+	s, _ := loc.Previous.(string)
+	conf.previous = s
 	return nil
 }

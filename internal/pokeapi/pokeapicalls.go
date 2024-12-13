@@ -18,9 +18,8 @@ type location struct {
 	} `json:"results"`
 }
 
-func CommandMap() error {
-
-	res, err := http.Get("https://pokeapi.co/api/v2/location-area/")
+func GetLocation(url string) location {
+	res, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,5 +42,6 @@ func CommandMap() error {
 		fmt.Println(result.Name)
 	}
 
-	return nil
+	return location
+
 }
