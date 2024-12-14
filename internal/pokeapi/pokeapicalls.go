@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/garvamel/pokedexcli/internal/pokecache"
 )
 
 type location struct {
@@ -19,17 +21,32 @@ type location struct {
 }
 
 func GetLocation(url string) location {
-	res, err := http.Get(url)
-	if err != nil {
-		log.Fatal(err)
-	}
-	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
-	if res.StatusCode > 299 {
-		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-	}
-	if err != nil {
-		log.Fatal(err)
+
+	var body []byte
+	var err error
+	var res *http.Response
+
+	c := pokecache.NewCache(5)
+
+	val, ok := c.Get(url)
+
+	if ok {
+		body = val
+	} else {
+
+		res, err = http.Get(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+		body, err = io.ReadAll(res.Body)
+		res.Body.Close()
+		if res.StatusCode > 299 {
+			log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+		}
+		if err != nil {
+			log.Fatal(err)
+
+		}
 	}
 
 	location := location{}
